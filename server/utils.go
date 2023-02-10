@@ -1,29 +1,22 @@
 package main
 
 import (
-    "fmt"
-    "net"
-    "time"
+	"net"
 )
 
-func QuickWrite(conn net.Conn, message string) bool {
-    var _, err = conn.Write([]byte(message))
-    if err != nil {
-        return false
-    }
-    return true
+func QuickWrite(conn net.Conn, message string) error {
+	var _, err = conn.Write([]byte(message + "\n"))
+	return err
 }
 
-func QuickRead(conn net.Conn, message *string) bool {
-    var buf = make([]byte, 1024)
-    var _, err = conn.Read(buf)
-    *message = string(buf)
-    if err != nil {
-        return false
-    }
-    return true
+func QuickRead(conn net.Conn, message *string) error {
+	var buf = make([]byte, 1024)
+	var _, err = conn.Read(buf)
+	*message = string(buf)
+	return err
 }
 
+/*
 func LogMessage(conn net.Conn, message string) bool {
     var now = time.Now()
     var log = fmt.Sprintf("[%s]: %s", now.String(), message)
@@ -32,3 +25,4 @@ func LogMessage(conn net.Conn, message string) bool {
     }
     return false
 }
+*/

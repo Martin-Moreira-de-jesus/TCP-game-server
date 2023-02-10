@@ -2,72 +2,90 @@ package main
 
 import (
     "github.com/google/uuid"
-    "sync"
+	"sync"
 )
 
 type SafeState struct {
-    mu sync.Mutex
-    games []Game
+	mu    sync.Mutex
+	games List[Game]
 }
 
-var state = SafeState{
-    games: make([]Game, 0),
+var State = SafeState{
+    games: List[Game]{},
 }
 
 type Player struct {
-    uuid string
-    posY int
-    alive bool
+	uuid  string
+	posY  int
+    up bool
+    down bool
+	alive bool
 }
 
 type Game struct {
-    uuid string
-    cactusX int
-    players []Player
+	uuid      string
+	obstacleX int
+    obstacleY1 int
+    obstacleY2 int
+	players List[Player]
+    running bool
 }
 
-func CreateOrJoinGame() (gameUUID string, playerUUID string) {
-    var newPlayer = Player{
-        uuid:  uuid.New().String(),
-        posY:  0,
-        alive: true,
-    }
+func CreateOrJoinGame() (gameJoined *Node[Game], playerCreated *Node[Player]) {
+	var newPlayer = Player{
+		uuid:  uuid.New().String(),
+		posY:  450,
+		alive: true,
+        up: false,
+        down: false,
+	}
 
-    for _, game := range state.games {
-        if len(game.players) <= 1 {
-            state.mu.Lock()
+	State.mu.Lock()
+    defer State.mu.Unlock()
 
-            game.players = append(game.players, newPlayer)
-
-            state.mu.Unlock()
-
-            return game.uuid, newPlayer.uuid
-        }
-    }
-
-    var newGame = Game{
-        uuid: uuid.New().String(),
-        cactusX: 0,
-        players: make([]Player, 1),
-    }
-    newGame.players[0] = newPlayer
-
-    state.mu.Lock()
-
-    state.games = append(state.games, newGame)
-
-    state.mu.Unlock()
-
-    return newGame.uuid, newPlayer.uuid
-}
-
-func GameStarted(gameUUID string) bool {
-    for _, game := range state.games {
-        if game.uuid == gameUUID {
-            if len(game.players) >= 2 {
-                return true
+    if State.games.Len() != 0 {
+        for e := State.games.First(); e != nil; e = e.Next() {
+            if e.val.players.Len() <= 1 {
+                var playerElem = e.val.players.PushBack(newPlayer)
+                return e, playerElem
             }
         }
     }
-    return false
+
+	// no game found, create one
+	var newGame = Game{
+		uuid:      uuid.New().String(),
+		obstacleX: 1000,
+		players:   List[Player]{},
+        running:   false,
+	}
+
+	var playerElem = newGame.players.PushBack(newPlayer)
+
+	var gameElem = State.games.PushBack(newGame)
+
+	return gameElem, playerElem
+}
+
+func (game *Game) LaunchGameLoopIfNotRunning(cn chan *Game) {
+    State.mu.Lock()
+
+    if !game.running {
+        game.running = true
+        cn <- game
+    }
+
+    State.mu.Unlock()
+}
+
+func (game *Game) IsRunnning() bool {
+    State.mu.Lock()
+    defer State.mu.Unlock()
+    return game.running
+}
+
+func (game *Game) CanStart() bool {
+    State.mu.Lock()
+    defer State.mu.Unlock()
+    return game.players.Len() == 2
 }

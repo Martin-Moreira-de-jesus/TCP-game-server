@@ -1,2 +1,4 @@
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+golang.org/dl v0.0.0-20230201184804-2d6232701089 h1:EF31pRCrfqJ76wyaETm5mZQHEQFdLf286YA78b71iN4=
+golang.org/dl v0.0.0-20230201184804-2d6232701089/go.mod h1:IUMfjQLJQd4UTqG1Z90tenwKoCX93Gn3MAQJMOSBsDQ=
