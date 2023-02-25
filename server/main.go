@@ -102,10 +102,10 @@ func handleUserInput(conn net.Conn, player *Node[Player]) {
 			if data[0] == "up" {
 				player.val.up,_ = strconv.ParseBool(data[1])
 				println(player.val.up)
-				player.val.posY += 10 // Adding values directly here
+				player.val.posY -= 10 // Adding values directly here
 			} else if data[0] == "down" {
 				player.val.down, _ = strconv.ParseBool(data[1])
-				player.val.posY -= 10 // Adding values directly here
+				player.val.posY += 10 // Adding values directly here
 			}
 		}
 		State.mu.Unlock()
@@ -119,10 +119,10 @@ func handleGameloop() {
 		State.mu.Lock()
 
 		// edit game
-		game.obstacleX -= 10
+		game.obstacleX -= 20
 
 		if game.obstacleX <= 0 {
-			game.obstacleX = 1000
+			game.obstacleX = 1500
 			game.obstacleY1 = rand.Intn(800)
 			game.obstacleY2 = game.obstacleY1 + 100
 		}
