@@ -1,7 +1,7 @@
 package main
 
 import (
-    "github.com/google/uuid"
+	"github.com/google/uuid"
 	"sync"
 )
 
@@ -11,24 +11,24 @@ type SafeState struct {
 }
 
 var State = SafeState{
-    games: List[Game]{},
+	games: List[Game]{},
 }
 
 type Player struct {
 	uuid  string
 	posY  int
-    up bool
-    down bool
+	up    bool
+	down  bool
 	alive bool
 }
 
 type Game struct {
-	uuid      string
-	obstacleX int
-    obstacleY1 int
-    obstacleY2 int
-	players List[Player]
-    running bool
+	uuid            string
+	obstacleX       int
+	obstacleYTop    int
+	obstacleYBottom int
+	players         List[Player]
+	running         bool
 }
 
 func CreateOrJoinGame() (gameJoined *Node[Game], playerCreated *Node[Player]) {
@@ -36,28 +36,28 @@ func CreateOrJoinGame() (gameJoined *Node[Game], playerCreated *Node[Player]) {
 		uuid:  uuid.New().String(),
 		posY:  450,
 		alive: true,
-        up: false,
-        down: false,
+		up:    false,
+		down:  false,
 	}
 
 	State.mu.Lock()
-    defer State.mu.Unlock()
+	defer State.mu.Unlock()
 
-    if State.games.Len() != 0 {
-        for e := State.games.First(); e != nil; e = e.Next() {
-            if e.val.players.Len() <= 1 {
-                var playerElem = e.val.players.PushBack(newPlayer)
-                return e, playerElem
-            }
-        }
-    }
+	if State.games.Len() != 0 {
+		for e := State.games.First(); e != nil; e = e.Next() {
+			if e.val.players.Len() <= 1 {
+				var playerElem = e.val.players.PushBack(newPlayer)
+				return e, playerElem
+			}
+		}
+	}
 
 	// no game found, create one
 	var newGame = Game{
 		uuid:      uuid.New().String(),
 		obstacleX: 1000,
 		players:   List[Player]{},
-        running:   false,
+		running:   false,
 	}
 
 	var playerElem = newGame.players.PushBack(newPlayer)
@@ -68,24 +68,24 @@ func CreateOrJoinGame() (gameJoined *Node[Game], playerCreated *Node[Player]) {
 }
 
 func (game *Game) LaunchGameLoopIfNotRunning(cn chan *Game) {
-    State.mu.Lock()
+	State.mu.Lock()
 
-    if !game.running {
-        game.running = true
-        cn <- game
-    }
+	if !game.running {
+		game.running = true
+		cn <- game
+	}
 
-    State.mu.Unlock()
+	State.mu.Unlock()
 }
 
 func (game *Game) IsRunnning() bool {
-    State.mu.Lock()
-    defer State.mu.Unlock()
-    return game.running
+	State.mu.Lock()
+	defer State.mu.Unlock()
+	return game.running
 }
 
 func (game *Game) CanStart() bool {
-    State.mu.Lock()
-    defer State.mu.Unlock()
-    return game.players.Len() == 2
+	State.mu.Lock()
+	defer State.mu.Unlock()
+	return game.players.Len() == 2
 }

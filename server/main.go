@@ -21,6 +21,8 @@ var cn = make(chan *Game)
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
+	defer State.mu.Unlock()
+
 	if QuickWrite(conn, "Joining lobby...") != nil {
 		return
 	}
@@ -63,19 +65,37 @@ func handleConnection(conn net.Conn) {
 
 	State.mu.Unlock()
 
-	go handleUserInput(conn, youPlayer)
+	go handleUserInput(conn, youPlayer, game)
 
 	for {
 		State.mu.Lock()
+
+		if !game.val.running || game == nil {
+			if game == nil {
+				game = nil
+			}
+			return
+		}
+
+		var youPlayerPos = youPlayer.val.posY
+		if !youPlayer.val.alive {
+			youPlayerPos = -1
+		}
+
+		var otherPlayerPos = otherPlayer.val.posY
+		if !otherPlayer.val.alive {
+			otherPlayerPos = -1
+		}
+
 		if QuickWrite(
 			conn,
 			fmt.Sprintf(
-				"you=%s,other=%s,pipeX=%s,obstacleY1=%s,obstacleY2=%s",
-				strconv.Itoa(youPlayer.val.posY),
-				strconv.Itoa(otherPlayer.val.posY),
-				strconv.Itoa(game.val.obstacleX),
-				strconv.Itoa(game.val.obstacleY1),
-				strconv.Itoa(game.val.obstacleY2),
+				"you=%d,other=%d,pipeX=%d,obstacleYTop=%d,obstacleYBottom=%d",
+				youPlayerPos,
+				otherPlayerPos,
+				game.val.obstacleX,
+				game.val.obstacleYTop,
+				game.val.obstacleYBottom,
 			),
 		) != nil {
 			return
@@ -85,58 +105,106 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-func handleUserInput(conn net.Conn, player *Node[Player]) {
+func handleUserInput(conn net.Conn, player *Node[Player], game *Node[Game]) {
 	defer conn.Close()
+
 	for {
 		var message string
-		if QuickRead(conn, &message) != nil {
-			println("null")
+
+		if QuickRead(conn, &message) == nil {
+			return
+		}
+
+		if game == nil || !game.val.running {
 			return
 		}
 
 		State.mu.Lock()
+
 		var values = strings.Split(message, ",")
-		println(values[0], "ok")
 		for _, e := range values {
 			var data = strings.Split(e, "=")
+			if len(data) <= 2 {
+				fmt.Println("bad input")
+				break
+			}
 			if data[0] == "up" {
-				player.val.up,_ = strconv.ParseBool(data[1])
-				println(player.val.up)
-				player.val.posY -= 10 // Adding values directly here
-			} else if data[0] == "down" {
+				player.val.up, _ = strconv.ParseBool(data[1])
+			} else if data[1] == "down" {
 				player.val.down, _ = strconv.ParseBool(data[1])
-				player.val.posY += 10 // Adding values directly here
 			}
 		}
 		State.mu.Unlock()
 	}
 }
 
-func handleGameloop() {
-	var game = <-cn
-	fmt.Println("Starting game loop !")
+func handleGameLoop(game *Game) {
+	var deadPlayers = 0
+	defer State.mu.Unlock()
+
+	game.obstacleX = 1000
+	game.obstacleYTop = rand.Intn(800)
+	game.obstacleYBottom = game.obstacleYTop + 100
+
 	for {
 		State.mu.Lock()
 
+		if deadPlayers == 2 {
+			game.running = false
+			return
+		}
+
 		// edit game
-		game.obstacleX -= 20
+		game.obstacleX -= 10
 
 		if game.obstacleX <= 0 {
-			game.obstacleX = 1500
-			game.obstacleY1 = rand.Intn(800)
-			game.obstacleY2 = game.obstacleY1 + 100
+			game.obstacleX = 1000
+			game.obstacleYTop = rand.Intn(800)
+			game.obstacleYBottom = game.obstacleYTop + 100
 		}
-/*
+
 		// edit players
+		// we condider that the player is a square of 50 by
 		for player := game.players.First(); player != nil; player = player.Next() {
-			println("test ", player.val.up)
-			if player.val.up == "true" {
+			if !player.val.alive {
+				continue
+			}
+
+			if game.obstacleX >= 100 && game.obstacleX <= 150 {
+				if (player.val.posY+25 >= game.obstacleYBottom) || (player.val.posY-25 <= game.obstacleYTop) {
+					player.val.alive = false
+					deadPlayers += 1
+					continue
+				}
+			}
+
+			if player.val.up {
 				player.val.posY += 10
 			} else if player.val.down {
 				player.val.posY += 10
 			}
 		}
-*/
+
+		State.mu.Unlock()
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func gameLoopListener() {
+	for {
+		var game = <-cn
+		go handleGameLoop(game)
+	}
+}
+
+func debug() {
+	for {
+		State.mu.Lock()
+
+		for e := State.games.First(); e != nil; e = e.Next() {
+			fmt.Println(e)
+		}
+
 		State.mu.Unlock()
 		time.Sleep(50 * time.Millisecond)
 	}
@@ -148,7 +216,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		go handleGameloop()
+		go gameLoopListener()
+		// go debug()
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
