@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"strconv"
-
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
@@ -23,7 +23,7 @@ type Game struct {
 	obstacleY2 int
 
 	//viewport
-	viewport viewport
+	viewport viewport // for moving background
 }
 
 var GameState = Game{
@@ -42,11 +42,11 @@ var pipeUp *ebiten.Image
 var background *ebiten.Image
 
 func init() {
-	img, _, err := ebitenutil.NewImageFromFile("img/plane1.png")
+	img, _, err := ebitenutil.NewImageFromFile("img/plane1.png") // your player
 	if err != nil {
 		log.Fatal(err)
 	}
-	imgbis, _, err := ebitenutil.NewImageFromFile("img/plane2.png")
+	imgbis, _, err := ebitenutil.NewImageFromFile("img/plane2.png") // other player
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func (g *Game) drawSprite(screen *ebiten.Image) {
 	if GameState.myposy >= 0 {
 		op1 := &ebiten.DrawImageOptions{}
 		op1.GeoM.Scale(0.5, 0.5)
-		op1.GeoM.Translate(0, -float64(h)/5.0) // set image to image center
+		op1.GeoM.Translate(0, -float64(h)/5.0)
 		op1.GeoM.Translate(float64(GameState.myposx), float64(GameState.myposy))
 		op1.Filter = ebiten.FilterLinear
 		screen.DrawImage(sprite1, op1)
@@ -89,7 +89,7 @@ func (g *Game) drawSprite(screen *ebiten.Image) {
 	if GameState.otherpos >= 0 {
 		op2 := &ebiten.DrawImageOptions{}
 		op2.GeoM.Scale(0.5, 0.5)
-		op2.GeoM.Translate(0, -float64(h)/5.0) // set image to image center
+		op2.GeoM.Translate(0, -float64(h)/5.0)
 		op2.GeoM.Translate(float64(GameState.myposx), float64(GameState.otherpos))
 		op2.Filter = ebiten.FilterLinear
 		screen.DrawImage(sprite2, op2)
@@ -100,14 +100,14 @@ func (g *Game) drawPipes(screen *ebiten.Image) {
 	w, h := pipeUp.Bounds().Dx(), pipeUp.Bounds().Dy()
 
 	op1 := &ebiten.DrawImageOptions{}
-	op1.GeoM.Translate(-float64(w), -float64(h)/2.0) // set image to image center
+	op1.GeoM.Translate(-float64(w), -float64(h)/2.0) // set image to image right center
 	op1.GeoM.Translate(float64(GameState.pipeX), float64(GameState.obstacleY1))
 	//op.GeoM.Scale(0.3, 0.3)
 	op1.Filter = ebiten.FilterLinear
 	screen.DrawImage(pipeUp, op1)
 
 	op2 := &ebiten.DrawImageOptions{}
-	op2.GeoM.Translate(-float64(w), -float64(h)/2.0) // set image to image center
+	op2.GeoM.Translate(-float64(w), -float64(h)/2.0) // set image to image right center
 	op2.GeoM.Translate(float64(GameState.pipeX), float64(GameState.obstacleY2))
 	//op2.GeoM.Scale(0.3, 0.3)
 	op2.Filter = ebiten.FilterLinear
@@ -153,12 +153,15 @@ func (g *Game) drawBackground(screen *ebiten.Image) {
 
 func (g *Game) Update() error {
 
-	var upKeyState = ebiten.IsKeyPressed(ebiten.KeyArrowUp)
-	var downKeyState = ebiten.IsKeyPressed(ebiten.KeyArrowDown)
+	// Listing all possible keys to play and checking their status
+	var upKeyPressedState = inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) || inpututil.IsKeyJustPressed(ebiten.KeyZ) || inpututil.IsKeyJustPressed(ebiten.KeyW)
+	var upKeyReleasedState = inpututil.IsKeyJustReleased(ebiten.KeyArrowUp) || inpututil.IsKeyJustReleased(ebiten.KeyZ) || inpututil.IsKeyJustReleased(ebiten.KeyW)
+	var downKeyPressedState = inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) || inpututil.IsKeyJustPressed(ebiten.KeyS)
+	var downKeyReleasedState = inpututil.IsKeyJustReleased(ebiten.KeyArrowDown) || inpututil.IsKeyJustReleased(ebiten.KeyS)
 
-	if upKeyState || downKeyState {
-		//println("KEYPRESSED "," up : ", ebiten.KeyArrowUp, " down : ", ebiten.KeyArrowDown)
-		SendButtonPressed(strconv.FormatBool(upKeyState), strconv.FormatBool(downKeyState))
+	// If something happens, trigger event and send input (when pressing and releasing key)
+	if upKeyPressedState || downKeyPressedState || upKeyReleasedState || downKeyReleasedState {
+		SendButtonPressed(strconv.FormatBool(upKeyPressedState), strconv.FormatBool(downKeyPressedState))
 	}
 	g.viewport.Move()
 	return nil
@@ -177,7 +180,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func main() {
 	go ClientInfos{}.Client()
 	ebiten.SetWindowSize(1000, 800)
-	ebiten.SetWindowTitle("Dino nodino")
+	ebiten.SetWindowTitle("Pico Park 2")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
