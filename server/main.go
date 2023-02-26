@@ -141,6 +141,7 @@ func handleUserInput(conn net.Conn, player *Node[Player], game *Node[Game]) {
 func handleGameLoop(game *Game) {
 	var deadPlayers = 0
 	var speed = 10
+	var score = 0
 	defer State.mu.Unlock()
 
 	game.obstacleX = 1200
@@ -151,6 +152,8 @@ func handleGameLoop(game *Game) {
 		State.mu.Lock()
 
 		if deadPlayers == 2 {
+			println("Your score is : ", score)
+			println("Congrats !!!, EZ win")
 			game.running = false
 			return
 		}
@@ -163,6 +166,7 @@ func handleGameLoop(game *Game) {
 			game.obstacleYTop = rand.Intn(600)
 			game.obstacleYBottom = game.obstacleYTop + 200
 			speed = speed + 1
+			score = score + 1
 		}
 
 		// edit players
