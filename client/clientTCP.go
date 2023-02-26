@@ -42,9 +42,8 @@ func (ci ClientInfos) Client() {
 	wg.Wait()
 }
 
-func SendButtonPressed(keyPressed string) {
-	println("yooo i'm in, button pressed")
-	message := keyPressed + "=true"
+func SendButtonPressed(upKeyState string, downKeyState string) {
+	message := "up=" + upKeyState + "," + "down=" + downKeyState + ","
 	go tcpWrite(message)
 }
 
