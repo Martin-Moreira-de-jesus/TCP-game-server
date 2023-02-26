@@ -107,31 +107,31 @@ func handleConnection(conn net.Conn) {
 
 func handleUserInput(conn net.Conn, player *Node[Player], game *Node[Game]) {
 	defer conn.Close()
-
 	for {
 		var message string
 
-		if QuickRead(conn, &message) == nil {
+		if QuickRead(conn, &message) != nil {
 			return
 		}
-
 		if game == nil || !game.val.running {
 			return
 		}
 
 		State.mu.Lock()
-
 		var values = strings.Split(message, ",")
 		for _, e := range values {
 			var data = strings.Split(e, "=")
-			if len(data) <= 2 {
+			if len(data) > 2 {
 				fmt.Println("bad input")
 				break
 			}
+			
 			if data[0] == "up" {
 				player.val.up, _ = strconv.ParseBool(data[1])
-			} else if data[1] == "down" {
+				println("up : ", player.val.up)
+			} else if data[0] == "down" {
 				player.val.down, _ = strconv.ParseBool(data[1])
+				println("down : ", player.val.down)
 			}
 		}
 		State.mu.Unlock()
@@ -140,11 +140,12 @@ func handleUserInput(conn net.Conn, player *Node[Player], game *Node[Game]) {
 
 func handleGameLoop(game *Game) {
 	var deadPlayers = 0
+	var speed = 10
 	defer State.mu.Unlock()
 
-	game.obstacleX = 1000
-	game.obstacleYTop = rand.Intn(800)
-	game.obstacleYBottom = game.obstacleYTop + 100
+	game.obstacleX = 1200
+	game.obstacleYTop = rand.Intn(600)
+	game.obstacleYBottom = game.obstacleYTop + 200
 
 	for {
 		State.mu.Lock()
@@ -155,12 +156,13 @@ func handleGameLoop(game *Game) {
 		}
 
 		// edit game
-		game.obstacleX -= 10
+		game.obstacleX -= speed
 
 		if game.obstacleX <= 0 {
-			game.obstacleX = 1000
-			game.obstacleYTop = rand.Intn(800)
-			game.obstacleYBottom = game.obstacleYTop + 100
+			game.obstacleX = 1200
+			game.obstacleYTop = rand.Intn(600)
+			game.obstacleYBottom = game.obstacleYTop + 200
+			speed = speed + 1
 		}
 
 		// edit players
@@ -170,17 +172,20 @@ func handleGameLoop(game *Game) {
 				continue
 			}
 
-			if game.obstacleX >= 100 && game.obstacleX <= 150 {
-				if (player.val.posY+25 >= game.obstacleYBottom) || (player.val.posY-25 <= game.obstacleYTop) {
+			if game.obstacleX >= 50 && game.obstacleX <= 300 {
+				println(player.val.posY+50, game.obstacleYBottom)
+				println(player.val.posY-50, game.obstacleYTop)
+				if (player.val.posY+30 >= game.obstacleYBottom) || (player.val.posY-30 <= game.obstacleYTop) {
 					player.val.alive = false
 					deadPlayers += 1
+					println("test", deadPlayers)
 					continue
 				}
 			}
 
-			if player.val.up {
-				player.val.posY += 10
-			} else if player.val.down {
+			if player.val.up && player.val.posY > 0 {
+				player.val.posY -= 10
+			} else if player.val.down && player.val.posY < 800 {
 				player.val.posY += 10
 			}
 		}
