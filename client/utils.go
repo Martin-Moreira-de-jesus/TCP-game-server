@@ -7,11 +7,8 @@ import (
 
 func (c *SafeCounter) Lock(received string) {
 	c.mu.Lock()
-	println("msg ", received)
-	// Lock so only one goroutine at a time can access c.instruction
 	Parser(received)
 	c.mu.Unlock()
-	//println(c.instruction)
 }
 
 func Parser(message string) {
@@ -22,7 +19,7 @@ func Parser(message string) {
 		GameState.otherpos, _ = strconv.Atoi(strings.Split(values[1], "=")[1])
 		GameState.pipeX, _ = strconv.Atoi(strings.Split(values[2], "=")[1])
 		GameState.obstacleY1, _ = strconv.Atoi(strings.Split(values[3], "=")[1])
-		GameState.obstacleY2 = GameState.obstacleY1 + 200 // bug using strconv
+		GameState.obstacleY2 = GameState.obstacleY1 + 200 // bug using strconv, reading server message
 		/*for _, e := range values {
 			data := strings.Split(e, "=")
 			println(data[1])

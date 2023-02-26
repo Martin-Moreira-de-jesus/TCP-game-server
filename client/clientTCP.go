@@ -53,7 +53,6 @@ func tcpRead() {
 	defer wg.Done()
 	for {
 		received := make([]byte, 1024)
-		//println(State.conn)
 		_, err := State.conn.Read(received)
 		if err != nil {
 			println("Read from server failed:", err.Error())

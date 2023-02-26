@@ -128,10 +128,10 @@ func handleUserInput(conn net.Conn, player *Node[Player], game *Node[Game]) {
 
 			if data[0] == "up" {
 				player.val.up, _ = strconv.ParseBool(data[1])
-				println("up : ", player.val.up)
+				//println("up : ", player.val.up)
 			} else if data[0] == "down" {
 				player.val.down, _ = strconv.ParseBool(data[1])
-				println("down : ", player.val.down)
+				//println("down : ", player.val.down)
 			}
 		}
 		State.mu.Unlock()
@@ -173,12 +173,9 @@ func handleGameLoop(game *Game) {
 			}
 
 			if game.obstacleX >= 50 && game.obstacleX <= 300 {
-				println(player.val.posY+50, game.obstacleYBottom)
-				println(player.val.posY-50, game.obstacleYTop)
 				if (player.val.posY+30 >= game.obstacleYBottom) || (player.val.posY-30 <= game.obstacleYTop) {
 					player.val.alive = false
 					deadPlayers += 1
-					println("test", deadPlayers)
 					continue
 				}
 			}
