@@ -85,7 +85,7 @@ func (g *Game) drawSprite(screen *ebiten.Image) {
 		op1.Filter = ebiten.FilterLinear
 		screen.DrawImage(sprite1, op1)
 	}
-	
+
 	if GameState.otherpos >= 0 {
 		op2 := &ebiten.DrawImageOptions{}
 		op2.GeoM.Scale(0.5, 0.5)

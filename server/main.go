@@ -125,7 +125,7 @@ func handleUserInput(conn net.Conn, player *Node[Player], game *Node[Game]) {
 				fmt.Println("bad input")
 				break
 			}
-			
+
 			if data[0] == "up" {
 				player.val.up, _ = strconv.ParseBool(data[1])
 				println("up : ", player.val.up)
