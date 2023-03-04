@@ -1,21 +1,23 @@
 package main
 
 import (
+	"log"
+	"strconv"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"log"
-	"strconv"
 )
 
+type Player struct {
+	isMe bool
+	posY int
+}
+
+const PosX = 50
+
 type Game struct {
-
-	// The caracter's position
-	myposx int
-	myposy int
-
-	// Other's pos
-	otherpos int
+	players []Player
 
 	// Pipes informations
 	pipeX      int
@@ -27,16 +29,14 @@ type Game struct {
 }
 
 var GameState = Game{
-	myposy:     450,
-	myposx:     50,
-	otherpos:   450,
+	players:    make([]Player, 0),
 	pipeX:      0,
 	obstacleY1: 0,
 	obstacleY2: 0,
 }
 
-var sprite1 *ebiten.Image
-var sprite2 *ebiten.Image
+var playerSprite *ebiten.Image
+var othersSprite *ebiten.Image
 var pipeDown *ebiten.Image
 var pipeUp *ebiten.Image
 var background *ebiten.Image
@@ -51,8 +51,8 @@ func init() {
 		log.Fatal(err)
 	}
 
-	sprite1 = ebiten.NewImageFromImage(img)
-	sprite2 = ebiten.NewImageFromImage(imgbis)
+	playerSprite = ebiten.NewImageFromImage(img)
+	othersSprite = ebiten.NewImageFromImage(imgbis)
 
 	img2, _, err := ebitenutil.NewImageFromFile("img/back.png")
 	if err != nil {
@@ -74,25 +74,27 @@ func init() {
 	pipeDown = ebiten.NewImageFromImage(img4)
 }
 
+func drawPlayer(player *Player, screen *ebiten.Image, sprite *ebiten.Image, h int) {
+	op1 := &ebiten.DrawImageOptions{}
+	op1.GeoM.Scale(0.5, 0.5)
+	op1.GeoM.Translate(0, -float64(h)/5.0)
+	op1.GeoM.Translate(float64(PosX), float64(player.posY))
+	op1.Filter = ebiten.FilterLinear
+	screen.DrawImage(sprite, op1)
+}
+
 func (g *Game) drawSprite(screen *ebiten.Image) {
-	_, h := sprite1.Bounds().Dx(), sprite1.Bounds().Dy()
+	_, h := playerSprite.Bounds().Dx(), playerSprite.Bounds().Dy()
 
-	if GameState.myposy >= 0 {
-		op1 := &ebiten.DrawImageOptions{}
-		op1.GeoM.Scale(0.5, 0.5)
-		op1.GeoM.Translate(0, -float64(h)/5.0)
-		op1.GeoM.Translate(float64(GameState.myposx), float64(GameState.myposy))
-		op1.Filter = ebiten.FilterLinear
-		screen.DrawImage(sprite1, op1)
-	}
-
-	if GameState.otherpos >= 0 {
-		op2 := &ebiten.DrawImageOptions{}
-		op2.GeoM.Scale(0.5, 0.5)
-		op2.GeoM.Translate(0, -float64(h)/5.0)
-		op2.GeoM.Translate(float64(GameState.myposx), float64(GameState.otherpos))
-		op2.Filter = ebiten.FilterLinear
-		screen.DrawImage(sprite2, op2)
+	for _, player := range GameState.players {
+		if player.posY == -1 {
+			continue
+		}
+		if player.isMe {
+			drawPlayer(&player, screen, playerSprite, h)
+		} else {
+			drawPlayer(&player, screen, othersSprite, h)
+		}
 	}
 }
 
@@ -146,6 +148,7 @@ func (g *Game) drawBackground(screen *ebiten.Image) {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(w*i), 0)
 			op.GeoM.Translate(offsetX, 0)
+			op.GeoM.Scale(1.5, 1.5)
 			screen.DrawImage(background, op)
 		}
 	}

@@ -12,17 +12,32 @@ func (c *SafeCounter) Lock(received string) {
 }
 
 func Parser(message string) {
-	print("msg ", message)
 	var values = strings.Split(message, ",")
 	if len(values) > 1 {
-		GameState.myposy, _ = strconv.Atoi(strings.Split(values[0], "=")[1])
-		GameState.otherpos, _ = strconv.Atoi(strings.Split(values[1], "=")[1])
-		GameState.pipeX, _ = strconv.Atoi(strings.Split(values[2], "=")[1])
-		GameState.obstacleY1, _ = strconv.Atoi(strings.Split(values[3], "=")[1])
-		GameState.obstacleY2 = GameState.obstacleY1 + 200 // bug using strconv, reading server message
-		/*for _, e := range values {
-			data := strings.Split(e, "=")
-			println(data[1])
-		}*/
+		GameState.players = make([]Player, 0)
+		for _, value := range values {
+			var operands = strings.Split(value, "=")
+			var key = operands[0]
+			var val, _ = strconv.Atoi(operands[1])
+			if key == "you" {
+				var player = Player{
+					isMe: true,
+					posY: val,
+				}
+				GameState.players = append(GameState.players, player)
+			} else if strings.Contains(key, "other") {
+				var player = Player{
+					isMe: false,
+					posY: val,
+				}
+				GameState.players = append(GameState.players, player)
+			} else if key == "pipeX" {
+				GameState.pipeX = val
+			} else if key == "obstacleYTop" {
+				GameState.obstacleY1 = val
+			} else if key == "obstacleYBottom" {
+				GameState.obstacleY2 = val
+			}
+		}
 	}
 }

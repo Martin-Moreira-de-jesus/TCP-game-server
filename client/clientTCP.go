@@ -3,6 +3,7 @@ package main
 import (
 	"net"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -53,12 +54,12 @@ func tcpRead() {
 	defer wg.Done()
 	for {
 		received := make([]byte, 1024)
-		_, err := State.conn.Read(received)
+		n, err := State.conn.Read(received)
 		if err != nil {
 			println("Read from server failed:", err.Error())
 			os.Exit(1)
 		}
-		c.Lock(string(received))
+		c.Lock(strings.TrimRight(string(received[:n]), "\n"))
 	}
 }
 
