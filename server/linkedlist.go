@@ -59,6 +59,18 @@ func (list *List[T]) PushBack(val T) *Node[T] {
 	return nil
 }
 
+func (list *List[T]) Remove(node *Node[T]) {
+	for e := list.First(); e != nil; e = e.Next() {
+		if e == node {
+			if list.Len() > 1 {
+				e.Remove()
+			} else {
+				list.head = nil
+			}
+		}
+	}
+}
+
 type Node[T any] struct {
 	next     *Node[T]
 	val      T
