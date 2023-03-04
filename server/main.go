@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"os"
@@ -48,10 +47,8 @@ func handleConnection(conn net.Conn) {
 			break
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(300 * time.Millisecond)
 	}
-
-	fmt.Println("Attempting to start game...")
 
 	game.val.LaunchGameLoopIfNotRunning(cn)
 
@@ -59,50 +56,23 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	State.mu.Lock()
-
-	var otherPlayer *Node[Player]
-	for e := game.val.players.First(); e != nil; e = e.Next() {
-		if e.val.uuid != youPlayer.val.uuid {
-			otherPlayer = e
-		}
-	}
-
-	State.mu.Unlock()
-
 	go handleUserInput(conn, youPlayer, game)
 
 	for {
 		State.mu.Lock()
 
-		if !game.val.running || game == nil {
+		if game == nil || !game.val.running {
 			if game == nil {
 				game = nil
+			} else {
+				State.games.Remove(game)
 			}
 			return
 		}
 
-		var youPlayerPos = youPlayer.val.posY
-		if !youPlayer.val.alive {
-			youPlayerPos = -1
-		}
+		var positions = game.val.Stringify(youPlayer)
 
-		var otherPlayerPos = otherPlayer.val.posY
-		if !otherPlayer.val.alive {
-			otherPlayerPos = -1
-		}
-
-		if QuickWrite(
-			conn,
-			fmt.Sprintf(
-				"you=%d,other=%d,pipeX=%d,obstacleYTop=%d,obstacleYBottom=%d",
-				youPlayerPos,
-				otherPlayerPos,
-				game.val.obstacleX,
-				game.val.obstacleYTop,
-				game.val.obstacleYBottom,
-			),
-		) != nil {
+		if QuickWrite(conn, strings.Join(positions, ",")) != nil {
 			return
 		}
 		State.mu.Unlock()
@@ -133,10 +103,8 @@ func handleUserInput(conn net.Conn, player *Node[Player], game *Node[Game]) {
 
 			if data[0] == "up" {
 				player.val.up, _ = strconv.ParseBool(data[1])
-				//println("up : ", player.val.up)
 			} else if data[0] == "down" {
 				player.val.down, _ = strconv.ParseBool(data[1])
-				//println("down : ", player.val.down)
 			}
 		}
 		State.mu.Unlock()
@@ -146,7 +114,6 @@ func handleUserInput(conn net.Conn, player *Node[Player], game *Node[Game]) {
 func handleGameLoop(game *Game) {
 	var deadPlayers = 0
 	var speed = 10
-	var score = 0
 	defer State.mu.Unlock()
 
 	game.obstacleX = 1200
@@ -170,7 +137,6 @@ func handleGameLoop(game *Game) {
 			game.obstacleYTop = rand.Intn(600)
 			game.obstacleYBottom = game.obstacleYTop + 200
 			speed = speed + 1
-			score = score + 1
 		}
 
 		// edit players

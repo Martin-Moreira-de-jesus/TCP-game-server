@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/google/uuid"
+	"fmt"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 type SafeState struct {
@@ -45,7 +47,7 @@ func CreateOrJoinGame() (gameJoined *Node[Game], playerCreated *Node[Player]) {
 
 	if State.games.Len() != 0 {
 		for e := State.games.First(); e != nil; e = e.Next() {
-			if e.val.players.Len() <= 1 {
+			if e.val.players.Len() <= Cfg.Game.MaxPlayers {
 				var playerElem = e.val.players.PushBack(newPlayer)
 				return e, playerElem
 			}
@@ -87,5 +89,29 @@ func (game *Game) IsRunnning() bool {
 func (game *Game) CanStart() bool {
 	State.mu.Lock()
 	defer State.mu.Unlock()
-	return game.players.Len() == 2
+	return game.players.Len() == Cfg.Game.MaxPlayers
+}
+
+func (game *Game) Stringify(currentPlayer *Node[Player]) []string {
+	var result = make([]string, 0)
+	/** Stringify players state */
+	var i = 0
+	for e := game.players.First(); e != nil; e = e.Next() {
+		var pos = e.val.posY
+		if !e.val.alive {
+			pos = -1
+		}
+		if e == currentPlayer {
+			result = append(result, fmt.Sprintf("you=%d", pos))
+		} else {
+			i++
+			result = append(result, fmt.Sprintf("other%d=%d", i, pos))
+		}
+	}
+
+	/** stringify game state */
+	result = append(result, fmt.Sprintf("pipeX=%d", game.obstacleX))
+	result = append(result, fmt.Sprintf("obstacleYTop=%d", game.obstacleYTop))
+	result = append(result, fmt.Sprintf("obstacleYBottom=%d", game.obstacleYBottom))
+	return result
 }
