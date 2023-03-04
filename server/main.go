@@ -5,11 +5,16 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/withmandala/go-log"
 )
+
+var Logger = log.New(os.Stdout).WithColor()
 
 type PlayerState struct {
 	mu   sync.Mutex
@@ -151,9 +156,8 @@ func handleGameLoop(game *Game) {
 	for {
 		State.mu.Lock()
 
-		if deadPlayers == 2 {
-			println("Your score is : ", score)
-			println("Congrats !!!, EZ win")
+		if deadPlayers == Cfg.Game.MaxPlayers {
+			Logger.Infof("Game %s ended", game.uuid)
 			game.running = false
 			return
 		}
@@ -197,8 +201,11 @@ func handleGameLoop(game *Game) {
 }
 
 func gameLoopListener() {
+	Logger.Info("Game loop listener started")
 	for {
+		Logger.Info("Waiting for a game to start")
 		var game = <-cn
+		Logger.Infof("Game %s started", game.uuid)
 		go handleGameLoop(game)
 	}
 }
@@ -218,18 +225,23 @@ func debug() {
 
 func main() {
 	if true {
-		ln, err := net.Listen("tcp", ":8080")
+		InitConfig()
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%s", Cfg.Server.Port))
+		Logger.Infof("Server started on port %s", Cfg.Server.Port)
+		Logger.Infof("Game size set to %d", Cfg.Game.MaxPlayers)
 		if err != nil {
-			log.Fatal(err)
+			Logger.Error(err)
+			os.Exit(2)
 		}
 		go gameLoopListener()
-		// go debug()
+
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				// handle error
+				Logger.Warn("User connection failed")
+			} else {
+				Logger.Info("User connected")
 			}
-
 			go handleConnection(conn)
 		}
 	}
