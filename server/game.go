@@ -47,7 +47,7 @@ func CreateOrJoinGame() (gameJoined *Node[Game], playerCreated *Node[Player]) {
 
 	if State.games.Len() != 0 {
 		for e := State.games.First(); e != nil; e = e.Next() {
-			if e.val.players.Len() <= Cfg.Game.MaxPlayers {
+			if e.val.players.Len() < Cfg.Game.MaxPlayers {
 				var playerElem = e.val.players.PushBack(newPlayer)
 				return e, playerElem
 			}
