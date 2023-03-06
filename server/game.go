@@ -31,6 +31,7 @@ type Game struct {
 	obstacleYBottom int
 	players         List[Player]
 	running         bool
+	over            bool
 }
 
 func CreateOrJoinGame() (gameJoined *Node[Game], playerCreated *Node[Player]) {
@@ -60,6 +61,7 @@ func CreateOrJoinGame() (gameJoined *Node[Game], playerCreated *Node[Player]) {
 		obstacleX: 1000,
 		players:   List[Player]{},
 		running:   false,
+		over:      false,
 	}
 
 	var playerElem = newGame.players.PushBack(newPlayer)

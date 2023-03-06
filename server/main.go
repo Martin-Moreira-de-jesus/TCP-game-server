@@ -26,7 +26,7 @@ var cn = make(chan *Game)
 func CleanUp(game *Node[Game], player *Node[Player]) {
 	State.mu.Lock()
 	defer State.mu.Unlock()
-	if game.val.running {
+	if game.val.running || game.val.over {
 		return
 	}
 	if game.val.players.Len() == 1 {
@@ -48,7 +48,6 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 	// in case game crashes, clean it up
-	Logger.Warn("I passed through cleanup")
 	defer CleanUp(game, youPlayer)
 
 	// wait for game to start
@@ -89,8 +88,8 @@ func handleConnection(conn net.Conn) {
 		if QuickWrite(conn, strings.Join(positions, ",")) != nil {
 			return
 		}
-		time.Sleep(30 * time.Millisecond)
 		State.mu.Unlock()
+		time.Sleep(30 * time.Millisecond)
 	}
 }
 
@@ -140,6 +139,7 @@ func handleGameLoop(game *Game) {
 		if deadPlayers == Cfg.Game.MaxPlayers {
 			Logger.Infof("Game %s ended", game.uuid)
 			game.running = false
+			game.over = true
 			return
 		}
 
