@@ -23,10 +23,21 @@ type PlayerState struct {
 
 var cn = make(chan *Game)
 
+func CleanUp(game *Node[Game], player *Node[Player]) {
+	State.mu.Lock()
+	defer State.mu.Unlock()
+	if game.val.running {
+		return
+	}
+	if game.val.players.Len() == 1 {
+		State.games.Remove(game)
+	} else {
+		game.val.players.Remove(player)
+	}
+}
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	defer State.mu.Unlock()
-
 	if QuickWrite(conn, "Joining lobby...") != nil {
 		return
 	}
@@ -36,6 +47,9 @@ func handleConnection(conn net.Conn) {
 	if QuickWrite(conn, fmt.Sprintf("Joined lobby!")) != nil {
 		return
 	}
+	// in case game crashes, clean it up
+	Logger.Warn("I passed through cleanup")
+	defer CleanUp(game, youPlayer)
 
 	// wait for game to start
 	for {
@@ -58,9 +72,9 @@ func handleConnection(conn net.Conn) {
 
 	go handleUserInput(conn, youPlayer, game)
 
+	defer State.mu.Unlock()
 	for {
 		State.mu.Lock()
-
 		if game == nil || !game.val.running {
 			if game == nil {
 				game = nil
@@ -75,8 +89,8 @@ func handleConnection(conn net.Conn) {
 		if QuickWrite(conn, strings.Join(positions, ",")) != nil {
 			return
 		}
-		State.mu.Unlock()
 		time.Sleep(30 * time.Millisecond)
+		State.mu.Unlock()
 	}
 }
 
