@@ -1,2 +1,2 @@
 client:
-  address: "162.38.112.157:8080"
+  address: localhost:8080

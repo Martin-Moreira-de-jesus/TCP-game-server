@@ -3,10 +3,16 @@ package main
 import (
 	"log"
 	"strconv"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 )
 
 type Player struct {
@@ -40,6 +46,8 @@ var othersSprite *ebiten.Image
 var pipeDown *ebiten.Image
 var pipeUp *ebiten.Image
 var background *ebiten.Image
+var titleTexts []string
+var titleArcadeFont font.Face
 
 func init() {
 	img, _, err := ebitenutil.NewImageFromFile("img/plane1.png") // your player
@@ -72,6 +80,20 @@ func init() {
 		log.Fatal(err)
 	}
 	pipeDown = ebiten.NewImageFromImage(img4)
+
+	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	const dpi = 72
+	titleArcadeFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    36,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func drawPlayer(player *Player, screen *ebiten.Image, sprite *ebiten.Image, h int) {
@@ -85,6 +107,10 @@ func drawPlayer(player *Player, screen *ebiten.Image, sprite *ebiten.Image, h in
 
 func (g *Game) drawSprite(screen *ebiten.Image) {
 	_, h := playerSprite.Bounds().Dx(), playerSprite.Bounds().Dy()
+
+	if (len(GameState.players) <= 0) {
+		text.Draw(screen, "Waiting for Players ...", titleArcadeFont, 100, 400, color.Black)
+	}
 
 	for _, player := range GameState.players {
 		if player.posY == -1 {
@@ -183,7 +209,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func main() {
 	go ClientInfos{}.Client()
 	ebiten.SetWindowSize(1000, 800)
-	ebiten.SetWindowTitle("Pico Park 2")
+	ebiten.SetWindowTitle("Pico Planes")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}

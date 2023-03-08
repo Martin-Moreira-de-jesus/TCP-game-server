@@ -25,7 +25,7 @@ var wg sync.WaitGroup
 
 func (ci ClientInfos) Client() {
 	InitConfig()
-	ci.servAddr = Cfg.client.address
+	ci.servAddr = Cfg.Client.Address
 	tcpAddr, err := net.ResolveTCPAddr("tcp", ci.servAddr)
 	if err != nil {
 		println("ResolveTCPAddr failed:", err.Error())

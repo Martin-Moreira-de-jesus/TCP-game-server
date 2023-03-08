@@ -3,7 +3,15 @@ package main
 import (
 	"strconv"
 	"strings"
+	"os"
+	"gopkg.in/yaml.v3"
 )
+
+type Config struct {
+	Client struct {
+		Address string `yaml:"address"`
+	} `yaml:"client"`
+}
 
 func (c *SafeCounter) Lock(received string) {
 	c.mu.Lock()
@@ -44,11 +52,6 @@ func Parser(message string) {
 
 var Cfg Config
 
-func processError(err error) {
-	Logger.Error(err)
-	os.Exit(2)
-}
-
 func InitConfig() {
 	ReadFile(&Cfg)
 }
@@ -56,13 +59,13 @@ func InitConfig() {
 func ReadFile(cfg *Config) {
 	f, err := os.Open("config.yaml")
 	if err != nil {
-		processError(err)
+		println("Error reading file")
 	}
 	defer f.Close()
 
 	decoder := yaml.NewDecoder(f)
 	err = decoder.Decode(cfg)
 	if err != nil {
-		processError(err)
+		println("Error reading file")
 	}
 }
